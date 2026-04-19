@@ -3,7 +3,7 @@
 VantaStonk — Schwab OAuth Login
 
 Run this in your terminal to authenticate with Schwab.
-Copy/paste the URL into your browser, log in, then paste back the redirect URL.
+Opens your browser automatically for login.
 
 Usage:
     python scripts/schwab_login.py
@@ -11,6 +11,7 @@ Usage:
 
 import os
 import sys
+import webbrowser
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -35,13 +36,18 @@ print("=" * 60)
 print("  VantaStonk — Schwab Login")
 print("=" * 60)
 print()
+print("Your browser will open to Schwab's login page.")
+print("Log in, then if you see a certificate warning:")
+print("  -> Click 'Advanced' -> 'Proceed'")
+print()
 
 try:
-    c = auth.client_from_manual_flow(
+    c = auth.client_from_login_flow(
         api_key=APP_KEY,
         app_secret=APP_SECRET,
         callback_url=CALLBACK_URL,
         token_path=TOKEN_PATH,
+        callback_timeout=300,
     )
     print("\nSuccess! Token saved to", TOKEN_PATH)
     print("You can now use score_ticker.py and morning_scan.py")
