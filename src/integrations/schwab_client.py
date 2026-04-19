@@ -221,18 +221,18 @@ class SchwabClient:
             days: Number of days of history (default 10 for 5-day trading lookback)
             frequency: "daily" or "minute"
         """
+        start_dt = datetime.now() - timedelta(days=days)
+
         if frequency == "daily":
             resp = self._client.get_price_history_every_day(
                 ticker,
-                period_type=schwab_client.Client.PriceHistory.PeriodType.DAY,
-                period=schwab_client.Client.PriceHistory.Period.TEN_DAYS,
+                start_datetime=start_dt,
                 need_previous_close=True,
             )
         else:
             resp = self._client.get_price_history_every_minute(
                 ticker,
-                period_type=schwab_client.Client.PriceHistory.PeriodType.DAY,
-                period=schwab_client.Client.PriceHistory.Period.ONE_DAY,
+                start_datetime=start_dt,
             )
 
         resp.raise_for_status()

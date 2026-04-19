@@ -93,7 +93,7 @@ def print_result(data: dict):
     f = data["filter"]
 
     print(f"\n{'='*50}")
-    print(f"  {data['ticker']}  —  ${data['price']:.2f}  |  Grade: {r.grade}  |  Score: {r.total:.3f}")
+    print(f"  {data['ticker']}  -  ${data['price']:.2f}  |  Grade: {r.grade}  |  Score: {r.total:.3f}")
     print(f"{'='*50}")
     print(f"  Open: ${data['open']:.2f}  |  5d ago: ${data['price_5d_ago']:.2f}  |  Vol: {data['volume']:,}")
     print(f"  Bid: ${data['bid']:.2f}  |  Ask: ${data['ask']:.2f}")
@@ -110,7 +110,7 @@ def print_result(data: dict):
     # Score breakdown
     print(f"\n  Score Breakdown:")
     for factor, value in r.breakdown.items():
-        bar = "█" * int(value * 40)
+        bar = "#" * int(value * 40)
         print(f"    {factor:>14}: {value:.4f}  {bar}")
 
     print(f"    {'raw_total':>14}: {r.raw_total:.4f}")
