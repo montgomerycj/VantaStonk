@@ -2,14 +2,11 @@
 """
 VantaStonk — Schwab OAuth Login
 
-Run this script in your terminal to authenticate with Schwab.
-It will open your browser, you log in, and it saves the token.
+Run this in your terminal to authenticate with Schwab.
+Copy/paste the URL into your browser, log in, then paste back the redirect URL.
 
 Usage:
     python scripts/schwab_login.py
-
-After login, the token is saved to data/schwab_token.json
-and all other scripts will use it automatically.
 """
 
 import os
@@ -34,14 +31,13 @@ if not APP_KEY or not APP_SECRET:
 
 Path(TOKEN_PATH).parent.mkdir(parents=True, exist_ok=True)
 
-print("Opening browser for Schwab login...")
-print("1. Log in with your Schwab credentials")
-print("2. If you see a security warning about the certificate, click 'Advanced' then 'Proceed'")
-print("3. The token will be saved automatically")
+print("=" * 60)
+print("  VantaStonk — Schwab Login")
+print("=" * 60)
 print()
 
 try:
-    c = auth.easy_client(
+    c = auth.client_from_manual_flow(
         api_key=APP_KEY,
         app_secret=APP_SECRET,
         callback_url=CALLBACK_URL,
