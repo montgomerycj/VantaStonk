@@ -7,6 +7,11 @@ dist/
 data/*.json
 !data/.gitkeep
 
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
 # OS files
 .DS_Store
 Thumbs.db
