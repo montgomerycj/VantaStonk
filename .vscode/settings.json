@@ -2,5 +2,6 @@
   "files.associations": {
     "Notes.md": "markdown"
   },
-  "markdown.preview.breaks": true
+  "markdown.preview.breaks": true,
+  "window.restoreWindows": "all"
 }
