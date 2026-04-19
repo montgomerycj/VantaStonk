@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.mcp.json
+
+# Business data (auto-generated AI profile)
+data/*.json
+!data/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db

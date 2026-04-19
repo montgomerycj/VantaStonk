@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "Notes.md": "markdown"
+  },
+  "markdown.preview.breaks": true
+}
