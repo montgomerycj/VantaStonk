@@ -79,22 +79,23 @@ class SchwabClient:
         """
         Establish authenticated connection to Schwab API.
 
-        First run: opens browser for OAuth login.
-        Subsequent runs: loads token from file, auto-refreshes.
+        Loads token from file (created by scripts/schwab_login.py).
+        Auto-refreshes the access token as needed.
         """
         if not APP_KEY or not APP_SECRET:
             print("ERROR: Set SCHWAB_APP_KEY and SCHWAB_APP_SECRET in .env")
             return False
 
         token_path = Path(TOKEN_PATH)
-        token_path.parent.mkdir(parents=True, exist_ok=True)
+        if not token_path.exists():
+            print("ERROR: No token file found. Run 'python scripts/schwab_login.py' first.")
+            return False
 
         try:
-            self._client = auth.easy_client(
+            self._client = auth.client_from_token_file(
+                token_path=str(token_path),
                 api_key=APP_KEY,
                 app_secret=APP_SECRET,
-                callback_url=CALLBACK_URL,
-                token_path=str(token_path),
             )
             print("Schwab API connected.")
             return True
