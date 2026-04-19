@@ -2,15 +2,15 @@
 
 ## Current Focus
 
-
 ## To Do
 
+port in the Schwab Developer API connection
 
 ## Done
-
 
 ## Daily Log
 
 ### 2026-04-19
 
-- <!-- session log: fill in accomplishments -->
+- 
+
