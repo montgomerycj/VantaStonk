@@ -27,7 +27,31 @@
 
 ### 2026-04-20
 
-- <!-- session log: fill in accomplishments -->
+**Morning — live market work (~72 min to close):**
+- Ran `morning_scan.py` — only AMZN passed filters (+3.5%, C grade); 18/19 rejected as chasing (SQ missing — rebranded to XYZ).
+- Added new [scripts/positions_snapshot.py](scripts/positions_snapshot.py) and pulled all 28 positions: portfolio $3.04M MV, −$5,123 on the day. Cannabis complex ripping — MSOX +15%, CVSI +12%, CURLF +9%, MSOS +8%, TCNNF +8%. Biggest $ drag: PFN −$13K (on a $2.36M position).
+- Scored MSOX/CURLF/GME via `score_ticker.py` — all three rejected as chasing (cannabis complex +24% over 5 days; don't add here, let winners run).
+
+**Mid-day cleanup commits:**
+- `188b2a1` — committed `positions_snapshot.py`, replaced SQ with XYZ in watchlist.
+- `4e54578` — tracked `data/watchlist.json` for cross-machine sync (narrowed gitignore).
+- `d0d71cb` — untracked `data/vantastonk.db` (per-machine scan history; was causing binary merge risk).
+
+**Afternoon — design sprint for watchlist v2:**
+- Realized the mega-cap starter watchlist directly contradicts the "pre-catalyst, under-discovered" thesis — every scan rejects everything as chasing because mega-caps move with the market. Also: `prompt_pulse × 0.24` is the second-heaviest scoring factor, and its implementation is a fake market-cap heuristic. Both get fixed together in v2.
+- Brainstormed design via `superpowers:brainstorming` — decided: hybrid two-ring (manual Core ≤25 + screener-fed Feeder ≤40), tiered market caps with tiered liquidity floors, composite Prompt Pulse fed by AI model sampling (Grok-weighted higher for real-time X access) + social velocity (Apewisdom) + volume anomalies (Schwab). Cutover guarded by `USE_REAL_PROMPT_PULSE` flag.
+- Spec written + reviewer-approved: [docs/superpowers/specs/2026-04-20-watchlist-v2-design.md](docs/superpowers/specs/2026-04-20-watchlist-v2-design.md) — commits `41b4336`, `96d416c`.
+- Implementation plan written + reviewer-approved: [docs/superpowers/plans/2026-04-20-watchlist-v2-implementation.md](docs/superpowers/plans/2026-04-20-watchlist-v2-implementation.md) — 33 tasks across 5 phases, ~57 new tests. Commits `a8465ff`, `7a9eb65`.
+
+**EOD — kicked off implementation via subagent-driven-development:**
+- **Task 1 done** (commits `41439c6` + `be0faf1`): added 4 new SQLite tables (`prompt_pulse_components`, `ai_samples_raw`, `social_snapshots`, `recommendation_outcomes`) + `created_at` audit columns. 24 tests passing.
+- **Task 2 spec-compliant** (commit `4146732`): added `save_prompt_pulse_components`, `get_recent_components`, `get_latest_composite` to `src/db.py`. Test passes. Code-quality reviewer flagged 3 minor cleanups (docstring, unused `timedelta` import, upsert coverage test) — pending tomorrow.
+- Observed subagent-driven cadence burns ~5-6 subagents per task. Decided tomorrow's sessions use hybrid "Option 2" cadence: inline execution for mechanical tasks, subagents only for complex/high-risk pieces (orchestration, cutover, interactive steps). Saved this as a feedback memory.
+
+**Tomorrow's entry point:**
+1. Close Task 2's pending cleanups (5 min inline work).
+2. Continue Task 3 onward on the plan.
+3. Task 19 (Core ring seed draft) will pause for my approval. Task 27 (flip `USE_REAL_PROMPT_PULSE=true`) will pause for pre-flight confirmation.
 
 ### 2026-04-19
 
