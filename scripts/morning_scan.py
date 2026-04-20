@@ -41,12 +41,12 @@ STARTER_WATCHLIST = {
     "tickers": [
         "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL",
         "META", "TSLA", "AMD", "PLTR", "SOFI",
-        "MARA", "RIOT", "COIN", "SQ", "SHOP",
+        "MARA", "RIOT", "COIN", "XYZ", "SHOP",
         "NET", "CRWD", "DDOG", "SNOW", "RKLB",
     ],
     "themes": {
         "ai_infrastructure": ["NVDA", "AMD", "PLTR"],
-        "fintech": ["SOFI", "SQ", "COIN"],
+        "fintech": ["SOFI", "XYZ", "COIN"],
         "crypto_adjacent": ["MARA", "RIOT", "COIN"],
         "cybersecurity": ["CRWD", "NET"],
         "space_economy": ["RKLB"],
