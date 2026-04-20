@@ -10,6 +10,11 @@ data/*.json
 !data/.gitkeep
 !data/watchlist.json
 
+# SQLite DBs are per-machine scan history — syncing them via git causes
+# binary merge conflicts. Each machine keeps its own local DB.
+data/*.db
+data/*.db-*
+
 # Python
 __pycache__/
 *.pyc
