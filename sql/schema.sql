@@ -131,6 +131,7 @@ CREATE TABLE IF NOT EXISTS prompt_pulse_components (
     social_velocity REAL,
     volume_anomaly REAL,
     composite REAL NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
     UNIQUE(ticker, captured_at)
 );
 CREATE INDEX IF NOT EXISTS idx_ppc_ticker_time
@@ -145,7 +146,8 @@ CREATE TABLE IF NOT EXISTS ai_samples_raw (
     prompt_text TEXT NOT NULL,
     response_text TEXT NOT NULL,
     tickers_extracted TEXT,              -- JSON array
-    token_cost_usd REAL
+    token_cost_usd REAL,
+    created_at TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_ai_samples_time
     ON ai_samples_raw(captured_at DESC);
@@ -158,6 +160,7 @@ CREATE TABLE IF NOT EXISTS social_snapshots (
     ticker TEXT NOT NULL,
     mentions_count INTEGER NOT NULL,
     sentiment_score REAL,
+    created_at TEXT DEFAULT (datetime('now')),
     UNIQUE(captured_at, source, ticker)
 );
 CREATE INDEX IF NOT EXISTS idx_social_ticker_time
@@ -176,6 +179,7 @@ CREATE TABLE IF NOT EXISTS recommendation_outcomes (
     price_3d REAL,
     price_7d REAL,
     dropped_at TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
     UNIQUE(ticker, first_appeared_at, ring)
 );
 CREATE INDEX IF NOT EXISTS idx_outcomes_ticker
