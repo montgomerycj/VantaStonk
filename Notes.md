@@ -5,6 +5,7 @@
 ## To Do
 
 ~~port in the Schwab Developer API connection~~
+
 - Phase 2: AI research partner + Prompt Pulse automation
 - Phase 3: Local FastAPI dashboard
 - Phase 4: Alerts + position monitoring + trade journal auto-logging
@@ -13,6 +14,7 @@
 ## Done
 
 ### 2026-04-19
+
 - Built full 95v2 scoring engine (scoring.py, filters.py, prompt_pulse.py)
 - Built all 3 workflows (Glance, ShadowList, Shorties)
 - Created SQLite schema (8 tables with indexes)
@@ -27,7 +29,7 @@
 
 ### 2026-04-20
 
-- <!-- session log: fill in accomplishments -->
+- 
 
 ### 2026-04-19
 
