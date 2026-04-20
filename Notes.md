@@ -25,6 +25,10 @@
 
 ## Daily Log
 
+### 2026-04-20
+
+- <!-- session log: fill in accomplishments -->
+
 ### 2026-04-19
 
 - Project bootstrap day: went from empty repo to live Schwab-connected trading intelligence system
