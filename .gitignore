@@ -3,9 +3,12 @@ dist/
 .env
 .mcp.json
 
-# Business data (auto-generated AI profile)
+# Business data — auto-generated runtime state (scan outputs, AI context,
+# score snapshots, etc.) stays local. Curated config (watchlist, themes)
+# is explicitly allowed through.
 data/*.json
 !data/.gitkeep
+!data/watchlist.json
 
 # Python
 __pycache__/
