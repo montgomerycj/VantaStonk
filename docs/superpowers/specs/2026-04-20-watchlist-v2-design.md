@@ -91,10 +91,10 @@ Convergence score for a ticker = sum of weights of models that mention it (max 1
 | Claude only | 0.25 | Weak; potentially stale thesis |
 
 **Multipliers on top of convergence:**
-- Freshness: +0.2 for tickers mentioned today that weren't mentioned yesterday
-- Rank-weight: 1.5x for tickers appearing in top-3 of an enumerated response list vs. buried at the bottom
+- Rank-weight (multiplicative): 1.5x for tickers appearing in top-3 of an enumerated response list; 1.0x otherwise
+- Freshness (additive): +0.2 for tickers mentioned today that weren't mentioned yesterday
 
-Final `ai_sampling` score clamped to [0.0, 1.0].
+**Application order:** `score = clamp((convergence * rank_weight) + freshness_bonus, 0.0, 1.0)`. Rank applies before freshness; clamp is the last step.
 
 ### 5.2 Social velocity (weight: 0.3)
 
@@ -109,7 +109,8 @@ Final `ai_sampling` score clamped to [0.0, 1.0].
 - Noise floor: ignore if absolute mention count <5.
 
 **Scoring:**
-- Velocity 1.5–2x: 0.3
+- Velocity <1.5x: 0.0
+- 1.5–2x: 0.3
 - 2–5x: 0.6
 - 5–10x: 0.9
 - 10x+: 1.0 (capped)
@@ -204,6 +205,8 @@ Candidates surface in a new **"Promotion Queue"** section of the morning scan ou
   - Small/mid ($300M–$10B): $2M/day dollar volume minimum
 - Sectors: unrestricted (let the edge find the theme)
 - Hard cap: maximum 15 micro-caps across both rings combined (noise ceiling)
+
+**Cap enforcement when Core and Feeder conflict:** Core is authoritative — user-curated names never get bumped by the Feeder regeneration. If Core already holds N micro-caps, the Feeder may contribute at most (15 − N) micro-caps. If Core alone exceeds 15 micro-caps, the Feeder contributes zero micro-caps and a warning surfaces in the scan output prompting the user to review Core concentration.
 
 ## 7. Operational flow
 
@@ -305,7 +308,30 @@ CREATE TABLE social_snapshots (
 CREATE INDEX idx_social_ticker_time ON social_snapshots(ticker, captured_at DESC);
 ```
 
-### 8.4 Retention
+### 8.4 `recommendation_outcomes`
+
+Tracks each Feeder entry from the moment it appears, capturing entry price for later hit-rate analysis (see §9.3).
+
+```sql
+CREATE TABLE recommendation_outcomes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ticker TEXT NOT NULL,
+  ring TEXT NOT NULL,            -- 'feeder' | 'core' | 'promotion_queue'
+  first_appeared_at DATETIME NOT NULL,
+  entry_price REAL NOT NULL,     -- see §9.3 for capture-timing rule
+  entry_price_source TEXT NOT NULL, -- 'premarket_quote' | 'intraday_last' | 'postclose_last'
+  composite_score_at_entry REAL NOT NULL,
+  price_1d REAL,
+  price_3d REAL,
+  price_7d REAL,
+  dropped_at DATETIME,
+  UNIQUE(ticker, first_appeared_at, ring)
+);
+CREATE INDEX idx_outcomes_ticker ON recommendation_outcomes(ticker);
+CREATE INDEX idx_outcomes_entry ON recommendation_outcomes(first_appeared_at DESC);
+```
+
+### 8.5 Retention
 
 30-day retention across all three tables, then rollup to daily aggregates. Monthly rollup runs via the same `schedule` skill.
 
@@ -313,7 +339,7 @@ CREATE INDEX idx_social_ticker_time ON social_snapshots(ticker, captured_at DESC
 - `ai_samples_raw`: 30 days full responses, then prune `response_text` but retain `tickers_extracted`.
 - `social_snapshots`: 30 days granular, then daily averages.
 
-### 8.5 Watchlist files
+### 8.6 Watchlist files
 
 - `data/watchlist_core.json` — **git-tracked**, cross-machine sync.
 - `data/watchlist_feeder.json` — **gitignored**, regenerates deterministically.
@@ -342,7 +368,16 @@ CREATE INDEX idx_social_ticker_time ON social_snapshots(ticker, captured_at DESC
 
 ### 9.3 Hit-rate tracking (minimal v1)
 
-After each run, auto-log Feeder entries with timestamp + entry price to a new `recommendation_outcomes` table. Query at N=1, N=3, N=7 days: did Feeder picks outperform a random universe sample? Weekly summary appended to `data/glance_*.md` as a "Scorecard" section.
+After each run, auto-log new Feeder entries to the `recommendation_outcomes` table (§8.4).
+
+**Entry price capture rule:**
+- Entries first appearing on the **pre-market run** use the **most recent quote at run time** (pre-market print if available, else prior EOD close). `entry_price_source = 'premarket_quote'`.
+- Entries first appearing on the **post-close run** use the **session's closing price**. `entry_price_source = 'postclose_last'`.
+- Entries added intraday (ad-hoc via `score_ticker.py`) use the live last price. `entry_price_source = 'intraday_last'`.
+
+A ticker's `recommendation_outcomes` row is created **once** on first appearance; subsequent reappearances update `dropped_at` to NULL if previously set, but do not overwrite `entry_price` or `first_appeared_at`. Dropping from Feeder sets `dropped_at`; re-entry after drop creates a **new row**.
+
+At N=1, N=3, N=7 trading days after `first_appeared_at`, a scheduled job fills `price_1d`, `price_3d`, `price_7d` using Schwab historical data. Weekly summary appended to `data/glance_*.md` as a "Scorecard" section comparing Feeder picks vs. a random universe sample.
 
 This is the minimal feedback loop. Full trade-journal integration is a separate project.
 
