@@ -219,3 +219,47 @@ def get_trade_stats(conn: sqlite3.Connection) -> dict:
         "win_rate": round(win_n / total_n * 100, 1) if total_n > 0 else 0,
         "total_pnl": total_pnl["total"] if total_pnl else 0,
     }
+
+
+# --- Prompt Pulse components (new v2 signal) ---
+
+def save_prompt_pulse_components(
+    conn: sqlite3.Connection,
+    ticker: str,
+    captured_at: str,
+    scan_type: str,
+    ai_sampling: float,
+    social_velocity: float,
+    volume_anomaly: float,
+    composite: float,
+):
+    """Save a single composite prompt_pulse measurement."""
+    conn.execute("""
+        INSERT OR REPLACE INTO prompt_pulse_components
+            (ticker, captured_at, scan_type, ai_sampling, social_velocity,
+             volume_anomaly, composite)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (ticker, captured_at, scan_type, ai_sampling, social_velocity,
+          volume_anomaly, composite))
+    conn.commit()
+
+
+def get_recent_components(conn: sqlite3.Connection, ticker: str, limit: int = 10):
+    rows = conn.execute("""
+        SELECT * FROM prompt_pulse_components
+        WHERE ticker = ?
+        ORDER BY captured_at DESC
+        LIMIT ?
+    """, (ticker, limit)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_latest_composite(conn: sqlite3.Connection, ticker: str):
+    """Get the most recent composite score for a ticker, or None."""
+    row = conn.execute("""
+        SELECT composite, captured_at FROM prompt_pulse_components
+        WHERE ticker = ?
+        ORDER BY captured_at DESC
+        LIMIT 1
+    """, (ticker,)).fetchone()
+    return dict(row) if row else None
