@@ -21,36 +21,47 @@ load_dotenv()
 
 from schwab import auth
 
-APP_KEY = os.getenv("SCHWAB_APP_KEY", "")
-APP_SECRET = os.getenv("SCHWAB_APP_SECRET", "")
-CALLBACK_URL = os.getenv("SCHWAB_CALLBACK_URL", "https://127.0.0.1:8182/")
-TOKEN_PATH = os.getenv("SCHWAB_TOKEN_PATH", "data/schwab_token.json")
 
-if not APP_KEY or not APP_SECRET:
-    print("ERROR: Set SCHWAB_APP_KEY and SCHWAB_APP_SECRET in .env")
-    sys.exit(1)
+def main():
+    APP_KEY = os.getenv("SCHWAB_APP_KEY", "")
+    APP_SECRET = os.getenv("SCHWAB_APP_SECRET", "")
+    CALLBACK_URL = os.getenv("SCHWAB_CALLBACK_URL", "https://127.0.0.1:8182/")
+    TOKEN_PATH = os.getenv("SCHWAB_TOKEN_PATH", "data/schwab_token.json")
 
-Path(TOKEN_PATH).parent.mkdir(parents=True, exist_ok=True)
+    if not APP_KEY or not APP_SECRET:
+        print("ERROR: Set SCHWAB_APP_KEY and SCHWAB_APP_SECRET in .env")
+        sys.exit(1)
 
-print("=" * 60)
-print("  VantaStonk — Schwab Login")
-print("=" * 60)
-print()
-print("Your browser will open to Schwab's login page.")
-print("Log in, then if you see a certificate warning:")
-print("  -> Click 'Advanced' -> 'Proceed'")
-print()
+    Path(TOKEN_PATH).parent.mkdir(parents=True, exist_ok=True)
 
-try:
-    c = auth.client_from_login_flow(
-        api_key=APP_KEY,
-        app_secret=APP_SECRET,
-        callback_url=CALLBACK_URL,
-        token_path=TOKEN_PATH,
-        callback_timeout=300,
-    )
-    print("\nSuccess! Token saved to", TOKEN_PATH)
-    print("You can now use score_ticker.py and morning_scan.py")
-except Exception as e:
-    print(f"\nLogin failed: {e}")
-    sys.exit(1)
+    print("=" * 60)
+    print("  VantaStonk — Schwab Login")
+    print("=" * 60)
+    print()
+    print("Your browser will open to Schwab's login page.")
+    print("Log in, then if you see a certificate warning:")
+    print("  -> Click 'Advanced' -> 'Proceed'")
+    print()
+
+    try:
+        auth.client_from_login_flow(
+            api_key=APP_KEY,
+            app_secret=APP_SECRET,
+            callback_url=CALLBACK_URL,
+            token_path=TOKEN_PATH,
+            callback_timeout=300,
+            interactive=False,
+        )
+        print("\nSuccess! Token saved to", TOKEN_PATH)
+        print("You can now use score_ticker.py and morning_scan.py")
+    except Exception as e:
+        print(f"\nLogin failed: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    # Required on Windows: schwab-py uses multiprocessing for the OAuth
+    # redirect server, and spawn start method re-imports this module.
+    import multiprocessing
+    multiprocessing.freeze_support()
+    main()
