@@ -1064,16 +1064,11 @@ def compute_ai_sampling_score(ticker: str, mentions: list[MentionRecord]) -> flo
     ticker_mentions = [m for m in mentions if m.ticker == ticker]
     if not ticker_mentions:
         return 0.0
-    convergence = 0.0
-    best_rank = 99
-    fresh = False
-    for m in ticker_mentions:
-        convergence += MODEL_WEIGHTS.get(m.model, 0.0)
-        best_rank = min(best_rank, m.rank)
-        fresh = fresh or m.is_fresh
-    # Dedupe: multiple mentions from same model shouldn't double-count weight
+    # Dedupe: multiple mentions from the same model shouldn't double-count its weight
     models_seen = {m.model for m in ticker_mentions}
     convergence = sum(MODEL_WEIGHTS.get(m, 0.0) for m in models_seen)
+    best_rank = min(m.rank for m in ticker_mentions)
+    fresh = any(m.is_fresh for m in ticker_mentions)
     rank_weight = compute_rank_weight(best_rank)
     freshness_bonus = 0.2 if fresh else 0.0
     score = (convergence * rank_weight) + freshness_bonus
@@ -1889,7 +1884,7 @@ git commit -m "chore: gitignore Feeder and Core backup files"
 **Files:**
 - Create: `data/watchlist_core.json`
 
-This task is **interactive** — Claude drafts, user approves before commit.
+This task is **interactive** — Claude drafts, user approves before commit. When executing via `subagent-driven-development`, the orchestrating agent MUST pause and request user input here rather than auto-approving its own draft.
 
 - [ ] **Step 1: Claude proposes ~15 seed entries**
 
@@ -1982,20 +1977,27 @@ def get_prompt_pulse_score(
     has_options: bool = True,
     fallback_to_heuristic: bool = True,
     db_path: str | None = None,
+    conn=None,
 ) -> float:
     """
     Unified entry point. Returns a 0-1 prompt_pulse score.
     If USE_REAL_PROMPT_PULSE is on, reads latest composite from DB;
     otherwise uses the discoverability heuristic.
+
+    For loop-heavy callers (morning_scan), pass a shared `conn` to avoid
+    opening/closing a SQLite connection per ticker.
     """
     settings = Settings.from_env()
     if settings.use_real_prompt_pulse:
         from src.db import get_connection, get_latest_composite
-        conn = get_connection(db_path) if db_path else get_connection()
+        owns_conn = conn is None
+        if owns_conn:
+            conn = get_connection(db_path) if db_path else get_connection()
         try:
             row = get_latest_composite(conn, ticker)
         finally:
-            conn.close()
+            if owns_conn:
+                conn.close()
         if row is not None:
             return float(row["composite"])
         if not fallback_to_heuristic:
@@ -2011,6 +2013,119 @@ py -3.14 -m pytest tests/test_prompt_pulse.py -v
 git add src/core/prompt_pulse.py tests/test_prompt_pulse.py
 git commit -m "feat(prompt_pulse): flag-guarded get_prompt_pulse_score reads from DB when live"
 ```
+
+### Task 20a: Extend `SchwabClient` with `has_quote` and `get_volume_history`
+
+Prerequisite for Task 21: the orchestration script needs these two methods that the current client doesn't expose.
+
+**Files:**
+- Modify: `src/integrations/schwab_client.py` (append two methods)
+- Test: `tests/test_schwab_client_ext.py` (new)
+
+- [ ] **Step 1: Write failing tests**
+
+```python
+# tests/test_schwab_client_ext.py
+from unittest.mock import MagicMock
+from src.integrations.schwab_client import SchwabClient
+
+def _make_client_with_mock(mock_client):
+    c = SchwabClient()
+    c._client = mock_client
+    c._connected = True
+    return c
+
+def test_has_quote_true(monkeypatch):
+    mock = MagicMock()
+    resp = MagicMock()
+    resp.json.return_value = {"AAPL": {"quote": {"lastPrice": 270.0}}}
+    mock.get_quote.return_value = resp
+    c = _make_client_with_mock(mock)
+    assert c.has_quote("AAPL") is True
+
+def test_has_quote_false(monkeypatch):
+    mock = MagicMock()
+    resp = MagicMock()
+    resp.json.return_value = {"FAKE": {}}
+    mock.get_quote.return_value = resp
+    c = _make_client_with_mock(mock)
+    assert c.has_quote("FAKE") is False
+
+def test_has_quote_exception_returns_false():
+    mock = MagicMock()
+    mock.get_quote.side_effect = Exception("boom")
+    c = _make_client_with_mock(mock)
+    assert c.has_quote("BOOM") is False
+
+def test_get_volume_history_returns_list(monkeypatch):
+    mock = MagicMock()
+    resp = MagicMock()
+    resp.json.return_value = {
+        "candles": [
+            {"volume": 1_000_000}, {"volume": 1_100_000}, {"volume": 900_000},
+        ],
+    }
+    mock.get_price_history_every_day.return_value = resp
+    c = _make_client_with_mock(mock)
+    hist = c.get_volume_history("AAPL", days=3)
+    assert hist == [1_000_000, 1_100_000, 900_000]
+
+def test_get_volume_history_empty_on_error():
+    mock = MagicMock()
+    mock.get_price_history_every_day.side_effect = Exception("boom")
+    c = _make_client_with_mock(mock)
+    assert c.get_volume_history("X", days=30) == []
+```
+
+- [ ] **Step 2: Run, verify FAIL**
+
+Run: `py -3.14 -m pytest tests/test_schwab_client_ext.py -v`
+Expected: FAIL — methods don't exist.
+
+- [ ] **Step 3: Add methods to `src/integrations/schwab_client.py`**
+
+Append inside the `SchwabClient` class:
+
+```python
+    def has_quote(self, symbol: str) -> bool:
+        """Return True if Schwab returns a valid quote for the symbol."""
+        try:
+            r = self._client.get_quote(symbol)
+            data = r.json() or {}
+            entry = data.get(symbol.upper(), {})
+            quote = entry.get("quote") or {}
+            return bool(quote.get("lastPrice") is not None or quote.get("closePrice") is not None)
+        except Exception:
+            return False
+
+    def get_volume_history(self, ticker: str, days: int = 30) -> list[int]:
+        """Return list of daily volumes for the last `days` trading days."""
+        try:
+            r = self._client.get_price_history_every_day(symbol=ticker)
+            data = r.json() or {}
+            candles = data.get("candles", [])[-days:]
+            return [int(c["volume"]) for c in candles if "volume" in c]
+        except Exception:
+            return []
+```
+
+Notes:
+- schwab-py's `get_price_history_every_day(symbol=...)` returns daily candles; this uses the last `days` of them as the baseline.
+- Both methods swallow exceptions → return empty/False. The orchestration script logs downstream.
+
+- [ ] **Step 4: Run, verify PASS**
+
+Run: `py -3.14 -m pytest tests/test_schwab_client_ext.py -v`
+Expected: 5/5 PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/integrations/schwab_client.py tests/test_schwab_client_ext.py
+git commit -m "feat(schwab): add has_quote and get_volume_history for signal pipeline"
+```
+
+---
 
 ### Task 21: `scripts/signal_refresh.py` — standalone run entry point
 
@@ -2139,9 +2254,9 @@ def _compute_volume_anomaly(client: SchwabClient, tickers: list[str]) -> dict[st
             if not volume_anomaly.passes_price_filter(move_pct):
                 out[t] = 0.0
                 continue
-            # 30-day avg: approximation using Schwab price history
-            hist = client.get_volume_history(t, days=30) if hasattr(client, "get_volume_history") else []
-            avg30 = (sum(hist) / len(hist)) if hist else quote.volume
+            # 30-day avg volume (method added in Task 20a)
+            hist = client.get_volume_history(t, days=30)
+            avg30 = (sum(hist) / len(hist)) if hist else (quote.volume or 0)
             rvol = volume_anomaly.compute_rvol(today=quote.volume or 0, avg_30d=avg30)
             out[t] = volume_anomaly.score_volume_anomaly(rvol)
         except Exception as e:
@@ -2242,7 +2357,7 @@ git commit -m "feat(scripts): signal_refresh orchestration for pre/post/ondemand
 Find `load_watchlist()` (around line 57). Replace the body:
 
 ```python
-def load_watchlist(path: str = None) -> dict:
+def load_watchlist() -> dict:
     """Load watchlist v2 — union of Core + Feeder."""
     from src.watchlist.core import load_core
     from src.watchlist.feeder import load_feeder
@@ -2257,7 +2372,10 @@ def load_watchlist(path: str = None) -> dict:
     }
 ```
 
-Remove the STARTER_WATCHLIST constant and the `path` parameter handling (no longer creates a file).
+Also:
+- Remove the `STARTER_WATCHLIST` constant and the `DEFAULT_WATCHLIST` constant.
+- Delete the `parser.add_argument("--watchlist", ...)` line in `main()` — the argument is no longer meaningful.
+- Update the call site in `main()`: `watchlist = load_watchlist()` (no args).
 
 - [ ] **Step 2: Add Promotion Queue section to `run_morning_scan`**
 
@@ -2278,7 +2396,8 @@ for ticker in tickers:
         continue
     move = ((ctx.price_current - ctx.price_5d_ago) / ctx.price_5d_ago * 100) if ctx.price_5d_ago else 0
     latest = recent[0]
-    if is_promotion_candidate(recent_composites, move, latest.get("volume_anomaly", 0)):
+    vol_component = latest.get("volume_anomaly") or 0.0  # column is nullable; guard None
+    if is_promotion_candidate(recent_composites, move, vol_component):
         promotion_candidates.append((ticker, latest["composite"], move))
 
 if promotion_candidates:
