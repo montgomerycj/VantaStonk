@@ -42,5 +42,10 @@ Good ideas should feel non-obvious at entry, obvious in hindsight.
 - **Auto-sync**: SessionStart pulls from GitHub, Stop pushes changes
 - **Multi-machine**: Laptop and desktop stay in sync via GitHub + Dropbox
 
+## Active Build
+- **Watchlist v2** is in implementation (Phase 1 in progress). Hybrid two-ring watchlist + real Prompt Pulse signal pipeline (AI sampling weighted toward Grok + social velocity + volume anomalies) replacing the mega-cap starter list and the fake market-cap heuristic. Cutover guarded by `USE_REAL_PROMPT_PULSE` env flag — defaults to OFF until Task 27 pre-flight passes.
+- Spec: `docs/superpowers/specs/2026-04-20-watchlist-v2-design.md`
+- Plan: `docs/superpowers/plans/2026-04-20-watchlist-v2-implementation.md` (33 tasks, 5 phases)
+
 ## Cross-References
 - General context: `~/.claude/CLAUDE.md` (global rules)
