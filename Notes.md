@@ -29,7 +29,14 @@
 
 ### 2026-05-15
 
-- <!-- session log: fill in accomplishments -->
+- Resolved git merge conflict (Notes.md) between laptop and desktop — desktop had 8 commits with v2 design work
+- Re-authenticated Schwab OAuth — new token good through 2026-05-22. Verified AAPL quote ($299.85) live.
+- Blasted through watchlist v2 plan Tasks 2–14 in one session:
+  - **Phase 1 complete**: Full signal pipeline — AI sampling clients (OpenAI/Anthropic/xAI), ticker extraction with blocklist, rank-weighted convergence scoring, social velocity (Apewisdom), RVOL volume anomaly, composite blender (0.5/0.3/0.2)
+  - **Phase 2 started**: Universe bounds module — tiered market cap ($50M–$10B), tiered liquidity floors, microcap cap enforcement
+  - Config module with `USE_REAL_PROMPT_PULSE` feature flag, 7 rotating prompts, ticker validator
+- Tests: 25 → 69 passing (44 new). 23 new files, 857 lines added.
+- Market note: S&P at ATH (~7,230), AMD doubled in 2026, PLTR down 24% YTD despite 85% rev growth. AI rotation underway — exactly the environment the v2 watchlist is designed for.
 
 ### 2026-05-14
 
