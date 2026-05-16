@@ -245,6 +245,7 @@ def save_prompt_pulse_components(
 
 
 def get_recent_components(conn: sqlite3.Connection, ticker: str, limit: int = 10):
+    """Get the N most recent prompt_pulse_components rows for a ticker."""
     rows = conn.execute("""
         SELECT * FROM prompt_pulse_components
         WHERE ticker = ?
@@ -263,3 +264,96 @@ def get_latest_composite(conn: sqlite3.Connection, ticker: str):
         LIMIT 1
     """, (ticker,)).fetchone()
     return dict(row) if row else None
+
+
+# --- AI samples raw ---
+
+def save_ai_sample_raw(conn, captured_at, model, prompt_id, prompt_text,
+                       response_text, tickers_extracted, token_cost_usd):
+    """Save a raw AI model response for audit and prompt tuning."""
+    conn.execute("""
+        INSERT INTO ai_samples_raw
+            (captured_at, model, prompt_id, prompt_text, response_text,
+             tickers_extracted, token_cost_usd)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (captured_at, model, prompt_id, prompt_text, response_text,
+          json.dumps(tickers_extracted), token_cost_usd))
+    conn.commit()
+
+
+def get_ai_samples_since(conn, since: str):
+    """Get all AI samples captured at or after the given timestamp."""
+    rows = conn.execute(
+        "SELECT * FROM ai_samples_raw WHERE captured_at >= ? ORDER BY captured_at DESC",
+        (since,)
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+# --- Social snapshots ---
+
+def save_social_snapshot(conn, captured_at, source, ticker, mentions_count, sentiment_score=None):
+    """Save a social mention snapshot (e.g. from Apewisdom)."""
+    conn.execute("""
+        INSERT OR REPLACE INTO social_snapshots
+            (captured_at, source, ticker, mentions_count, sentiment_score)
+        VALUES (?, ?, ?, ?, ?)
+    """, (captured_at, source, ticker, mentions_count, sentiment_score))
+    conn.commit()
+
+
+def get_mentions_history(conn, ticker: str, source: str = "apewisdom", days: int = 7):
+    """Get recent social mention history for a ticker within N days."""
+    rows = conn.execute("""
+        SELECT * FROM social_snapshots
+        WHERE ticker = ? AND source = ?
+          AND captured_at >= datetime('now', '-' || ? || ' days')
+        ORDER BY captured_at DESC
+    """, (ticker, source, days)).fetchall()
+    return [dict(r) for r in rows]
+
+
+# --- Recommendation outcomes ---
+
+def save_recommendation_outcome(conn, ticker, ring, first_appeared_at,
+                                entry_price, entry_price_source,
+                                composite_score_at_entry):
+    """Save a recommendation outcome entry for hit-rate tracking."""
+    conn.execute("""
+        INSERT OR IGNORE INTO recommendation_outcomes
+            (ticker, ring, first_appeared_at, entry_price, entry_price_source,
+             composite_score_at_entry)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (ticker, ring, first_appeared_at, entry_price, entry_price_source,
+          composite_score_at_entry))
+    conn.commit()
+
+
+def get_outcome(conn, ticker, first_appeared_at, ring):
+    """Get a single recommendation outcome by its unique key."""
+    row = conn.execute("""
+        SELECT * FROM recommendation_outcomes
+        WHERE ticker = ? AND first_appeared_at = ? AND ring = ?
+    """, (ticker, first_appeared_at, ring)).fetchone()
+    return dict(row) if row else None
+
+
+def update_outcome_price(conn, ticker, first_appeared_at, ring, field, price):
+    """Update a price_Nd field on an outcome. Field must be price_1d/3d/7d."""
+    if field not in ("price_1d", "price_3d", "price_7d"):
+        raise ValueError(f"invalid field: {field}")
+    conn.execute(
+        f"UPDATE recommendation_outcomes SET {field} = ? "
+        "WHERE ticker = ? AND first_appeared_at = ? AND ring = ?",
+        (price, ticker, first_appeared_at, ring)
+    )
+    conn.commit()
+
+
+def mark_outcome_dropped(conn, ticker, first_appeared_at, ring, dropped_at):
+    """Mark a recommendation outcome as dropped from its ring."""
+    conn.execute("""
+        UPDATE recommendation_outcomes SET dropped_at = ?
+        WHERE ticker = ? AND first_appeared_at = ? AND ring = ?
+    """, (dropped_at, ticker, first_appeared_at, ring))
+    conn.commit()

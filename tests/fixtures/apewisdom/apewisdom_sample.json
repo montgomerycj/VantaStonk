@@ -1,0 +1,8 @@
+{
+  "results": [
+    {"ticker": "AAPL", "mentions": 120, "sentiment": 0.8, "upvotes": 450},
+    {"ticker": "NVDA", "mentions": 95, "sentiment": 0.7, "upvotes": 380},
+    {"ticker": "ABCD", "mentions": 42, "sentiment": 0.5, "upvotes": 30},
+    {"ticker": "TINY", "mentions": 3, "sentiment": 0.2, "upvotes": 5}
+  ]
+}
