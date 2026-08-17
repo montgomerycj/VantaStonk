@@ -27,6 +27,11 @@
 
 ## Daily Log
 
+### 2026-08-17
+
+- Watchlist v2 Tasks 15–18: Core JSON I/O + backup (`src/watchlist/core.py`), Feeder regen/prune (`src/watchlist/feeder.py`), 3-gate promotion detect-only (`src/watchlist/promotion.py`), gitignore so Feeder + Core backups stay local and `data/watchlist_core.json` can be committed later.
+- No Core seed written (Task 19 is a CJ sign-off gate). `USE_REAL_PROMPT_PULSE` stays false.
+
 ### 2026-07-23
 
 - <!-- session log: fill in accomplishments -->
