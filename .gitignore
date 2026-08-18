@@ -21,6 +21,10 @@ data/watchlist_core.json.bak-*
 data/*.db
 data/*.db-*
 
+# OAuth authorize URL dumped so it stays pasteable if the terminal
+# swallows stdout (Windows / non-TTY / Cursor). Not a secret, but local.
+data/schwab_auth_url.txt
+
 # Python
 __pycache__/
 *.pyc
