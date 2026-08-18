@@ -1,0 +1,44 @@
+[
+  {
+    "ticker": "RARE",
+    "thesis": "DTX401 GSDIa PDUFA ~2026-08-23 (FDA often acts Fri 8/21 or Mon 8/24). This-week dated name.",
+    "added": "2026-08-17",
+    "conviction": "high",
+    "review_by": "2026-08-24"
+  },
+  {
+    "ticker": "ZYME",
+    "thesis": "Jazz Ziihera/zanidatamab PDUFA 2026-08-25. Next week, not a Tuesday chase.",
+    "added": "2026-08-17",
+    "conviction": "watching",
+    "review_by": "2026-08-26"
+  },
+  {
+    "ticker": "TVTX",
+    "thesis": "FILSPARI commercial / REMS friction, not a Tuesday binary.",
+    "added": "2026-08-17",
+    "conviction": "watching",
+    "review_by": "2026-09-16"
+  },
+  {
+    "ticker": "LEU",
+    "thesis": "U.S. HALEU / X-energy offtake. Quiet 5-day after the 8/6 print.",
+    "added": "2026-08-17",
+    "conviction": "watching",
+    "review_by": "2026-09-16"
+  },
+  {
+    "ticker": "URG",
+    "thesis": "Shirley Basin authorization, Lost Creek haul.",
+    "added": "2026-08-17",
+    "conviction": "watching",
+    "review_by": "2026-09-16"
+  },
+  {
+    "ticker": "SVRA",
+    "thesis": "MOLBREEVI PDUFA is 2026-11-22 (NOT August). November watch only.",
+    "added": "2026-08-17",
+    "conviction": "watching",
+    "review_by": "2026-11-22"
+  }
+]
