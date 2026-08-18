@@ -27,6 +27,10 @@
 
 ## Daily Log
 
+### 2026-08-18
+
+- Schwab auth hygiene: `scripts/schwab_login.py` prints + writes the authorize URL (`data/schwab_auth_url.txt`) before any browser-open; `interactive=False` + Windows `__main__`/`freeze_support` stay. Token-age helper (`ok` / `warn` ≥5d / `dead` ≥7d / `missing`) on `src/integrations/schwab_auth.py`; `SchwabClient.connect()` and Schwab CLIs stop with `python scripts/schwab_login.py` instead of a generic OAuth stack trace. 7-day refresh TTL remains a Schwab hard limit.
+
 ### 2026-08-17
 
 - Watchlist v2 Tasks 15–18: Core JSON I/O + backup (`src/watchlist/core.py`), Feeder regen/prune (`src/watchlist/feeder.py`), 3-gate promotion detect-only (`src/watchlist/promotion.py`), gitignore so Feeder + Core backups stay local and `data/watchlist_core.json` can be committed later.

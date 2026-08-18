@@ -10,14 +10,20 @@ Wraps schwab-py for:
 """
 
 import os
-import json
 from datetime import datetime, timedelta
-from dataclasses import dataclass, field
-from pathlib import Path
+from dataclasses import dataclass
 from typing import Optional
 
 from dotenv import load_dotenv
 from schwab import auth, client as schwab_client
+
+from src.integrations.schwab_auth import (
+    LOGIN_COMMAND,
+    SchwabAuthError,
+    inspect_token,
+    is_refresh_rejected,
+    refresh_rejected_error,
+)
 
 load_dotenv()
 
@@ -71,36 +77,47 @@ class PriceBar:
 class SchwabClient:
     """VantaStonk's interface to the Schwab API."""
 
-    def __init__(self):
+    def __init__(self, token_path: Optional[str] = None):
         self._client = None
         self._account_hash = None
+        self.token_path = token_path or TOKEN_PATH
 
     def connect(self) -> bool:
         """
         Establish authenticated connection to Schwab API.
 
         Loads token from file (created by scripts/schwab_login.py).
-        Auto-refreshes the access token as needed.
+        Access-token auto-refresh (30 min) stays with schwab-py.
+        Missing or 7-day-dead refresh tokens return False with a
+        login command — they do not surface as a generic OAuth trace.
         """
         if not APP_KEY or not APP_SECRET:
             print("ERROR: Set SCHWAB_APP_KEY and SCHWAB_APP_SECRET in .env")
             return False
 
-        token_path = Path(TOKEN_PATH)
-        if not token_path.exists():
-            print("ERROR: No token file found. Run 'python scripts/schwab_login.py' first.")
+        age = inspect_token(self.token_path)
+        print(age.message, flush=True)
+        if age.status in ("missing", "dead"):
             return False
 
         try:
             self._client = auth.client_from_token_file(
-                token_path=str(token_path),
+                token_path=str(self.token_path),
                 api_key=APP_KEY,
                 app_secret=APP_SECRET,
             )
             print("Schwab API connected.")
             return True
+        except SchwabAuthError as e:
+            print(e, flush=True)
+            return False
         except Exception as e:
+            if is_refresh_rejected(e):
+                err = refresh_rejected_error(e)
+                print(err, flush=True)
+                return False
             print(f"Schwab connection failed: {e}")
+            print(f"If the token is stale, run {LOGIN_COMMAND}")
             return False
 
     def _ensure_account_hash(self):
