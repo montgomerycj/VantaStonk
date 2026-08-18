@@ -27,9 +27,11 @@
 
 ## Daily Log
 
-### 2026-07-23
+### 2026-08-17
 
-- <!-- session log: fill in accomplishments -->
+- Watchlist v2 Tasks 15–18: Core JSON I/O + backup (`src/watchlist/core.py`), Feeder regen/prune (`src/watchlist/feeder.py`), 3-gate promotion detect-only (`src/watchlist/promotion.py`), gitignore so Feeder + Core backups stay local and `data/watchlist_core.json` can be committed later.
+- Task 20: `get_prompt_pulse_score()` — flag-guarded. OFF (default) keeps the market-cap heuristic; ON reads latest composite from `prompt_pulse_components`. No Core seed. Flag stays false.
+- Dropped the empty 2026-07-23 daily-log stub (session-sync only; no work was recorded).
 
 ### 2026-05-15
 
