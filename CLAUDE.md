@@ -1,5 +1,10 @@
 # Vantastonk (95v2)
 
+
+## Slate inherit (session close)
+
+On session close, or when a decision lands that is not a commit, append one dated line to `C:\Users\cj\Dropbox\claude-memory\Vantastonk\cross-agent-log.md`: what shipped, what was decided, or what was killed. Slate Gbot inherits that log plus recent git commits. Cursor chats themselves are not readable from there. Do not edit MEMORY.md for this.
+
 Short-term trading intelligence agent. Identifies early-stage stock opportunities BEFORE broad discovery.
 
 ## System Role
