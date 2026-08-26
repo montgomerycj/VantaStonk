@@ -9,11 +9,21 @@ dist/
 data/*.json
 !data/.gitkeep
 !data/watchlist.json
+!data/watchlist_core.json
+
+# Watchlist v2: Feeder regenerates locally; Core backups stay local-only.
+# Core itself (watchlist_core.json) is git-tracked once Task 19 seeds it.
+data/watchlist_feeder.json
+data/watchlist_core.json.bak-*
 
 # SQLite DBs are per-machine scan history — syncing them via git causes
 # binary merge conflicts. Each machine keeps its own local DB.
 data/*.db
 data/*.db-*
+
+# OAuth authorize URL dumped so it stays pasteable if the terminal
+# swallows stdout (Windows / non-TTY / Cursor). Not a secret, but local.
+data/schwab_auth_url.txt
 
 # Python
 __pycache__/

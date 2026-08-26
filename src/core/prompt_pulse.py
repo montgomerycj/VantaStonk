@@ -17,6 +17,8 @@ Example prompts to simulate:
 
 from dataclasses import dataclass, field
 
+from src.config import Settings
+
 
 # Theme categories that drive AI recommendations
 TRENDING_THEMES = [
@@ -141,3 +143,40 @@ def estimate_discoverability(
         score += 0.1
 
     return min(1.0, score)
+
+
+def get_prompt_pulse_score(
+    ticker: str,
+    company_name: str,
+    market_cap_millions: float,
+    sector: str,
+    has_options: bool = True,
+    fallback_to_heuristic: bool = True,
+    db_path: str | None = None,
+    conn=None,
+) -> float:
+    """
+    Unified entry point. Returns a 0-1 prompt_pulse score.
+    If USE_REAL_PROMPT_PULSE is on, reads latest composite from DB;
+    otherwise uses the discoverability heuristic.
+
+    For loop-heavy callers (morning_scan), pass a shared `conn` to avoid
+    opening/closing a SQLite connection per ticker.
+    """
+    settings = Settings.from_env()
+    if settings.use_real_prompt_pulse:
+        from src.db import get_connection, get_latest_composite
+        owns_conn = conn is None
+        if owns_conn:
+            conn = get_connection(db_path) if db_path else get_connection()
+        try:
+            row = get_latest_composite(conn, ticker)
+        finally:
+            if owns_conn:
+                conn.close()
+        if row is not None:
+            return float(row["composite"])
+        if not fallback_to_heuristic:
+            return 0.5  # neutral when no signal available yet
+    # Heuristic path
+    return estimate_discoverability(ticker, company_name, market_cap_millions, sector, has_options)

@@ -78,3 +78,70 @@ def test_discoverability_micro_cap():
     micro = estimate_discoverability("TINY", "Tiny Biotech Corp International", 200, "healthcare")
     mid = estimate_discoverability("MID", "Mid Corp", 2000, "technology")
     assert mid > micro
+
+
+def test_get_score_uses_heuristic_when_flag_off(monkeypatch, tmp_path):
+    monkeypatch.setenv("USE_REAL_PROMPT_PULSE", "false")
+    from src.core.prompt_pulse import get_prompt_pulse_score
+    score = get_prompt_pulse_score(
+        ticker="ABCD", company_name="Foo Co",
+        market_cap_millions=800, sector="technology",
+        fallback_to_heuristic=True,
+    )
+    assert 0.0 <= score <= 1.0
+
+
+def test_get_score_uses_real_signal_when_flag_on(monkeypatch, tmp_path):
+    monkeypatch.setenv("USE_REAL_PROMPT_PULSE", "true")
+    from src.db import init_db, get_connection, save_prompt_pulse_components
+    from datetime import datetime
+    db = tmp_path / "t.db"
+    init_db(str(db))
+    conn = get_connection(str(db))
+    save_prompt_pulse_components(conn, ticker="ABCD",
+                                  captured_at=datetime.now().isoformat(timespec="seconds"),
+                                  scan_type="premarket", ai_sampling=0.8,
+                                  social_velocity=0.4, volume_anomaly=0.6, composite=0.64)
+    conn.close()
+    from src.core.prompt_pulse import get_prompt_pulse_score
+    score = get_prompt_pulse_score(ticker="ABCD", company_name="Foo", market_cap_millions=800,
+                                    sector="technology", db_path=str(db))
+    assert abs(score - 0.64) < 1e-9
+
+
+def test_flag_off_ignores_db_composite(monkeypatch, tmp_path):
+    """Heuristic path is unchanged: a stored composite must not leak through when the flag is off."""
+    monkeypatch.setenv("USE_REAL_PROMPT_PULSE", "false")
+    from src.db import init_db, get_connection, save_prompt_pulse_components
+    from src.core.prompt_pulse import estimate_discoverability, get_prompt_pulse_score
+    from datetime import datetime
+    db = tmp_path / "t.db"
+    init_db(str(db))
+    conn = get_connection(str(db))
+    save_prompt_pulse_components(conn, ticker="ABCD",
+                                  captured_at=datetime.now().isoformat(timespec="seconds"),
+                                  scan_type="premarket", ai_sampling=0.8,
+                                  social_velocity=0.4, volume_anomaly=0.6, composite=0.64)
+    conn.close()
+    score = get_prompt_pulse_score(
+        ticker="ABCD", company_name="Foo Co",
+        market_cap_millions=800, sector="technology",
+        db_path=str(db),
+    )
+    expected = estimate_discoverability("ABCD", "Foo Co", 800, "technology")
+    assert abs(score - expected) < 1e-9
+    assert abs(score - 0.64) > 1e-9
+
+
+def test_flag_on_missing_row_returns_neutral_without_fallback(monkeypatch, tmp_path):
+    monkeypatch.setenv("USE_REAL_PROMPT_PULSE", "true")
+    from src.db import init_db
+    from src.core.prompt_pulse import get_prompt_pulse_score
+    db = tmp_path / "t.db"
+    init_db(str(db))
+    score = get_prompt_pulse_score(
+        ticker="MISSING", company_name="None",
+        market_cap_millions=800, sector="technology",
+        fallback_to_heuristic=False, db_path=str(db),
+    )
+    assert score == 0.5

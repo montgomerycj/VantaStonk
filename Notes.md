@@ -27,6 +27,21 @@
 
 ## Daily Log
 
+### 2026-08-26
+
+- Pinned Schwab token path to the repo root via `Path(__file__)` (`resolve_schwab_token_path()` in `src/config.py`). Login + token-load helpers no longer write/read `data/schwab_token.json` from process cwd (2026-08-25 leftover-cwd drop into PRX).
+
+### 2026-08-18
+
+- Schwab auth hygiene: `scripts/schwab_login.py` prints + writes the authorize URL (`data/schwab_auth_url.txt`) before any browser-open; `interactive=False` + Windows `__main__`/`freeze_support` stay. Token-age helper (`ok` / `warn` ≥5d / `dead` ≥7d / `missing`) on `src/integrations/schwab_auth.py`; `SchwabClient.connect()` and Schwab CLIs stop with `python scripts/schwab_login.py` instead of a generic OAuth stack trace. 7-day refresh TTL remains a Schwab hard limit.
+
+### 2026-08-17
+
+- Task 19 Core seed signed off as this six-name working set: RARE, ZYME, TVTX, LEU, URG, SVRA.
+- Watchlist v2 Tasks 15–18: Core JSON I/O + backup (`src/watchlist/core.py`), Feeder regen/prune (`src/watchlist/feeder.py`), 3-gate promotion detect-only (`src/watchlist/promotion.py`), gitignore so Feeder + Core backups stay local and `data/watchlist_core.json` can be committed later.
+- Task 20: `get_prompt_pulse_score()` — flag-guarded. OFF (default) keeps the market-cap heuristic; ON reads latest composite from `prompt_pulse_components`. No Core seed. Flag stays false.
+- Dropped the empty 2026-07-23 daily-log stub (session-sync only; no work was recorded).
+
 ### 2026-05-15
 
 - Resolved git merge conflict (Notes.md) between laptop and desktop — desktop had 8 commits with v2 design work

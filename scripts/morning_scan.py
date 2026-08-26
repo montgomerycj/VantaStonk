@@ -228,7 +228,6 @@ def main():
     # Connect to Schwab
     client = SchwabClient()
     if not client.connect():
-        print("Failed to connect to Schwab API. Check your .env credentials.")
         sys.exit(1)
 
     # Run scan
