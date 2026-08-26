@@ -17,6 +17,7 @@ from typing import Optional
 from dotenv import load_dotenv
 from schwab import auth, client as schwab_client
 
+from src.config import resolve_schwab_token_path
 from src.integrations.schwab_auth import (
     LOGIN_COMMAND,
     SchwabAuthError,
@@ -32,7 +33,7 @@ load_dotenv()
 APP_KEY = os.getenv("SCHWAB_APP_KEY", "")
 APP_SECRET = os.getenv("SCHWAB_APP_SECRET", "")
 CALLBACK_URL = os.getenv("SCHWAB_CALLBACK_URL", "https://127.0.0.1:8182/")
-TOKEN_PATH = os.getenv("SCHWAB_TOKEN_PATH", "data/schwab_token.json")
+TOKEN_PATH = resolve_schwab_token_path()
 
 
 @dataclass
