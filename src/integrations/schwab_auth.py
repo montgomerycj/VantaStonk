@@ -16,8 +16,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Literal, Optional, TextIO, Union
 
+from src.config import REPO_ROOT
+
 LOGIN_COMMAND = "python scripts/schwab_login.py"
-AUTH_URL_PATH = Path("data/schwab_auth_url.txt")
+AUTH_URL_PATH = REPO_ROOT / "data" / "schwab_auth_url.txt"
 
 WARN_AFTER_DAYS = 5
 DEAD_AFTER_DAYS = 7

@@ -27,6 +27,10 @@
 
 ## Daily Log
 
+### 2026-08-26
+
+- Pinned Schwab token path to the repo root via `Path(__file__)` (`resolve_schwab_token_path()` in `src/config.py`). Login + token-load helpers no longer write/read `data/schwab_token.json` from process cwd (2026-08-25 leftover-cwd drop into PRX).
+
 ### 2026-08-18
 
 - Schwab auth hygiene: `scripts/schwab_login.py` prints + writes the authorize URL (`data/schwab_auth_url.txt`) before any browser-open; `interactive=False` + Windows `__main__`/`freeze_support` stay. Token-age helper (`ok` / `warn` ≥5d / `dead` ≥7d / `missing`) on `src/integrations/schwab_auth.py`; `SchwabClient.connect()` and Schwab CLIs stop with `python scripts/schwab_login.py` instead of a generic OAuth stack trace. 7-day refresh TTL remains a Schwab hard limit.

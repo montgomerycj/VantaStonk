@@ -11,11 +11,12 @@ load_dotenv()
 
 from schwab import auth, client as sc
 
+from src.config import resolve_schwab_token_path
 from src.integrations.schwab_auth import SchwabAuthError, require_usable_token
 
 APP_KEY = os.getenv("SCHWAB_APP_KEY")
 APP_SECRET = os.getenv("SCHWAB_APP_SECRET")
-TOKEN_PATH = os.getenv("SCHWAB_TOKEN_PATH", "data/schwab_token.json")
+TOKEN_PATH = resolve_schwab_token_path()
 
 
 def main():

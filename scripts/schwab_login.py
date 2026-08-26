@@ -21,6 +21,7 @@ load_dotenv()
 
 from schwab import auth
 
+from src.config import resolve_schwab_token_path
 from src.integrations.schwab_auth import AUTH_URL_PATH, prepare_login_flow
 
 
@@ -28,7 +29,7 @@ def main():
     APP_KEY = os.getenv("SCHWAB_APP_KEY", "")
     APP_SECRET = os.getenv("SCHWAB_APP_SECRET", "")
     CALLBACK_URL = os.getenv("SCHWAB_CALLBACK_URL", "https://127.0.0.1:8182/")
-    TOKEN_PATH = os.getenv("SCHWAB_TOKEN_PATH", "data/schwab_token.json")
+    TOKEN_PATH = resolve_schwab_token_path()
 
     if not APP_KEY or not APP_SECRET:
         print("ERROR: Set SCHWAB_APP_KEY and SCHWAB_APP_SECRET in .env")

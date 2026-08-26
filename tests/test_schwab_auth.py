@@ -196,6 +196,8 @@ def test_login_script_keeps_windows_safe_flags():
     assert "interactive=False" in src
     assert "freeze_support" in src
     assert 'if __name__ == "__main__"' in src
+    assert "resolve_schwab_token_path" in src
+    assert 'os.getenv("SCHWAB_TOKEN_PATH", "data/schwab_token.json")' not in src
 
 
 def test_connect_maps_invalid_client_to_login_command(tmp_path, monkeypatch, capsys):
