@@ -7,15 +7,24 @@ Wraps schwab-py for:
 - Price quotes (single + batch)
 - Price history (5-day lookback for chasing filter)
 - Recent orders (for trade journal)
+- Place one equity order (common stock; dry-run lives in the CLI)
 """
 
 import os
+import re
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from typing import Optional
 
 from dotenv import load_dotenv
 from schwab import auth, client as schwab_client
+from schwab.orders.common import Duration
+from schwab.orders.equities import (
+    equity_buy_limit,
+    equity_buy_market,
+    equity_sell_limit,
+    equity_sell_market,
+)
 
 from src.config import resolve_schwab_token_path
 from src.integrations.schwab_auth import (
@@ -73,6 +82,146 @@ class PriceBar:
     low: float
     close: float
     volume: int
+
+
+@dataclass
+class PlacedOrder:
+    """Result of a submitted equity order. No secrets, no account hash."""
+    order_id: Optional[str]
+    status: str
+
+
+# Common stock only: 1–6 letters, optional class suffix (.B / -B / /B).
+_EQUITY_TICKER_RE = re.compile(r"^[A-Z]{1,6}([./-][A-Z])?$")
+# OCC / OSI option root: underlying + YYMMDD + C|P + 8-digit strike.
+_OCC_OPTION_RE = re.compile(r"^[A-Z]{1,6}\d{6}[CP]\d{8}$")
+_ORDER_ID_IN_LOCATION_RE = re.compile(
+    r"/accounts/[^/]+/orders/(\d+)\s*$",
+    re.IGNORECASE,
+)
+
+_SIDES = frozenset({"buy", "sell"})
+_ORDER_TYPES = frozenset({"market", "limit"})
+_TIF_ALIASES = {
+    "DAY": Duration.DAY,
+    "GTC": Duration.GOOD_TILL_CANCEL,
+    "GOOD_TILL_CANCEL": Duration.GOOD_TILL_CANCEL,
+}
+
+
+def looks_like_option_symbol(ticker: str) -> bool:
+    """True for OCC/OSI strings and other non-equity option tickets."""
+    raw = (ticker or "").strip().upper()
+    if not raw:
+        return False
+    compact = re.sub(r"\s+", "", raw)
+    if _OCC_OPTION_RE.match(compact):
+        return True
+    if any(ch.isspace() for ch in raw):
+        return True
+    return False
+
+
+def normalize_equity_ticker(ticker: str) -> str:
+    """Uppercase a common-stock ticker. Reject options / OCC strings."""
+    raw = (ticker or "").strip().upper()
+    if not raw:
+        raise ValueError("ticker is required")
+    if looks_like_option_symbol(raw):
+        raise ValueError(f"Options symbols are not supported (v1 equities only): {raw}")
+    if not _EQUITY_TICKER_RE.match(raw):
+        raise ValueError(f"Not a common-stock ticker: {raw}")
+    return raw
+
+
+def format_limit_price(price) -> str:
+    """Schwab-py prefers price strings. Sub-dollar uses 4 dp; else 2 dp."""
+    try:
+        value = float(price)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("price must be a positive number") from exc
+    if value <= 0:
+        raise ValueError("price must be positive")
+    if abs(value) < 1:
+        return f"{value:.4f}"
+    return f"{value:.2f}"
+
+
+def build_equity_order(
+    ticker: str,
+    side: str,
+    quantity: int,
+    order_type: str,
+    price=None,
+    tif: str = "DAY",
+) -> dict:
+    """
+    Build a schwab-py equity order spec (dict). Does not call the API.
+
+    Default time-in-force is DAY. GTC requires an explicit tif of GTC
+    (or GOOD_TILL_CANCEL). Equities / common stock only.
+    """
+    symbol = normalize_equity_ticker(ticker)
+    side_key = (side or "").strip().lower()
+    type_key = (order_type or "").strip().lower()
+    tif_key = (tif or "DAY").strip().upper()
+
+    if side_key not in _SIDES:
+        raise ValueError("side must be buy or sell")
+    if type_key not in _ORDER_TYPES:
+        raise ValueError("order type must be market or limit")
+    if tif_key not in _TIF_ALIASES:
+        raise ValueError("tif must be DAY or GTC")
+
+    try:
+        qty = int(quantity)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("quantity must be a positive integer") from exc
+    if qty <= 0 or qty != quantity:
+        raise ValueError("quantity must be a positive integer")
+
+    if type_key == "limit":
+        if price is None:
+            raise ValueError("limit orders require a price")
+        formatted = format_limit_price(price)
+        builder = (
+            equity_buy_limit(symbol, qty, formatted)
+            if side_key == "buy"
+            else equity_sell_limit(symbol, qty, formatted)
+        )
+    else:
+        if price is not None:
+            raise ValueError("market orders do not take a price")
+        builder = (
+            equity_buy_market(symbol, qty)
+            if side_key == "buy"
+            else equity_sell_market(symbol, qty)
+        )
+
+    duration = _TIF_ALIASES[tif_key]
+    if duration is not Duration.DAY:
+        builder = builder.set_duration(duration)
+
+    return builder.build()
+
+
+def extract_placed_order_id(response) -> Optional[str]:
+    """
+    Pull the order id from a place_order Location header.
+
+    Never returns or embeds the Location URL (it contains the account hash).
+    """
+    headers = getattr(response, "headers", None) or {}
+    location = headers.get("Location") or headers.get("location")
+    if not location:
+        return None
+    match = _ORDER_ID_IN_LOCATION_RE.search(str(location))
+    if match:
+        return match.group(1)
+    tail = str(location).rstrip("/").rsplit("/", 1)[-1]
+    if tail.isdigit():
+        return tail
+    return None
 
 
 class SchwabClient:
@@ -303,6 +452,51 @@ class SchwabClient:
         )
         resp.raise_for_status()
         return resp.json()
+
+    def place_order(
+        self,
+        ticker: str,
+        side: str,
+        quantity: int,
+        order_type: str,
+        price=None,
+        tif: str = "DAY",
+    ) -> PlacedOrder:
+        """
+        Place one equity order on the first account hash (same as get_positions).
+
+        Uses schwab-py ``Client.place_order``. Does not print tokens, app
+        credentials, or the account hash. Raises SchwabAuthError with the
+        login command when the refresh token is rejected.
+        """
+        if self._client is None:
+            raise RuntimeError("Not connected. Call connect() first.")
+
+        spec = build_equity_order(
+            ticker=ticker,
+            side=side,
+            quantity=quantity,
+            order_type=order_type,
+            price=price,
+            tif=tif,
+        )
+        self._ensure_account_hash()
+        try:
+            resp = self._client.place_order(self._account_hash, spec)
+        except SchwabAuthError:
+            raise
+        except Exception as e:
+            if is_refresh_rejected(e):
+                raise refresh_rejected_error(e) from e
+            raise
+
+        status_code = getattr(resp, "status_code", None)
+        if status_code is not None and status_code >= 400:
+            raise RuntimeError(f"Schwab rejected the order (HTTP {status_code})")
+
+        order_id = extract_placed_order_id(resp)
+        status = "ACCEPTED" if status_code in (200, 201, None) else str(status_code)
+        return PlacedOrder(order_id=order_id, status=status)
 
     # --- Account Summary ---
 
