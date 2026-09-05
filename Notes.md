@@ -27,6 +27,10 @@
 
 ## Daily Log
 
+### 2026-09-04
+
+- <!-- session log: fill in accomplishments -->
+
 ### 2026-08-27
 
 - Added Schwab live equity order sender: `SchwabClient.place_order()` plus `scripts/place_order.py`. Dry-run is the default; `--i-mean-it` is required to submit. Token path stays repo-rooted via `resolve_schwab_token_path()`. Equities / common stock only (OCC/options rejected). No live order placed as part of the PR; tests mock the client.
