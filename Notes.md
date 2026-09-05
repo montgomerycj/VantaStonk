@@ -29,7 +29,7 @@
 
 ### 2026-09-04
 
-- <!-- session log: fill in accomplishments -->
+- Re-authed Schwab OAuth (7-day refresh token had expired, last auth 2026-08-28). Fresh token written 8:07 PM PT via `python scripts/schwab_login.py`. First attempt failed `invalid_grant` (auth code expired before browser round-trip completed); second attempt succeeded. New token good through ~2026-09-11.
 
 ### 2026-08-27
 
