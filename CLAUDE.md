@@ -1,56 +1,36 @@
 # Vantastonk (95v2)
 
+Short-term equities desk. Early names before the crowd. Horizon: intraday to ~3 days.
 
 ## Slate inherit (session close)
+On session close, or when a decision lands that is not a commit, append one dated ship/decision/kill line to Dropbox `claude-memory/Vantastonk/cross-agent-log.md`. Friday = Repeat offenses score. Do not ask CJ for Cursor recaps. Do not edit MEMORY.md for routine closes.
 
-On session close, or when a decision lands that is not a commit, append one dated line to `C:\Users\cj\Dropbox\claude-memory\Vantastonk\cross-agent-log.md`: what shipped, what was decided, or what was killed. Slate Gbot inherits that log plus recent git commits. Cursor chats themselves are not readable from there. Do not edit MEMORY.md for this.
+## Durable writes (house rule)
+On every CJ correction / kill / park: same-day `feedback_*.md` (or MEMORY if foundational) under Dropbox `claude-memory/Vantastonk/` AND one cross-agent-log line. Chat-only fixes do not count. Before deep work: load MEMORY + feedback_*.md + last 5 log lines from Dropbox first.
 
-Short-term trading intelligence agent. Identifies early-stage stock opportunities BEFORE broad discovery.
+## Core rules
+1. No chasing — reject >5% / 5 sessions or >15% intraday unless unpriced catalyst.
+2. Buy the rumor — pre-catalyst / under-recognized over post-news winners.
+3. Prompt Pulse — what AI tools recommend in the next 6–48 hours.
+4. Early > confirmed.
+5. CJ clicks; no live Schwab orders / outbound without explicit approval.
 
-## System Role
-- Predict what AI tools (ChatGPT, Claude, Grok) will recommend next
-- Avoid late, crowded, overextended trades
-- Time horizon: intraday → 3 days (primary), up to ~1 week (secondary)
+## Week ops (locked 2026-09-11)
+- Goal +5% on week-book frame. Hard Fri flat unless CJ extends.
+- Up to 5–6 live clips; ≤2 on the same fuse. Lotto $750–1k; core $1–2k.
+- Do not result. Week-book P/L separate from owned pads.
+- Book sits (robotics sleeve / unless CJ opens): leave BOTZ/SYM/TER/OUST/PRCT.
 
-## Core Rules
-1. **No Chasing** — Reject >5% move in 5 trading days, >15% intraday. Exception: new catalyst not priced in.
-2. **Buy the Rumor** — Prefer pre-catalyst setups, under-recognized names. Avoid post-news winners already moving.
-3. **Prompt Pulse Edge** — Constantly evaluate "What stocks will AI recommend in the next 6–48 hours?"
-4. **Early > Confirmed** — Prioritize early signals + partial confirmation over fully validated but late trades.
-
-## Scoring Model
-```
-TOTAL = catalyst×0.28 + prompt_pulse×0.24 + freshness×0.18 + peer×0.12 + volume×0.08 + macro×0.10
-Penalties: chasing(-0.25), stale_narrative(-0.15), negative_peer(-0.10)
-```
+## Schwab SoT
+- Live token on Vanta box secrets (absolute path). Optional desk/laptop sync.
+- Re-auth: box handoff or laptop authorize URL → paste 127.0.0.1:8182 redirect. Never print secrets.
 
 ## Modules
-- **Glance** — Actionable: 1–2 momentum, 1 pair trade, 1 macro tilt, optional lotto
-- **ShadowList** — Pre-trigger: not ready yet, clear trigger required
-- **Shorties** — Fade: overextended, fresh downside
+Glance (actionable) / ShadowList (pre-trigger) / Shorties (fade).
 
-## Project Structure
-```
-src/core/         — scoring.py, filters.py, prompt_pulse.py
-src/workflows/    — run_glance.py, refresh_shadowlist.py, run_shorties.py
-sql/              — schema.sql (SQLite)
-tests/            — test_scoring.py, test_filters.py, test_prompt_pulse.py
-docs/             — strategic documents, research, analysis
-data/             — runtime data, AI context (git-ignored JSON)
-```
+## Scoring (ref)
+TOTAL = catalyst×0.28 + prompt_pulse×0.24 + freshness×0.18 + peer×0.12 + volume×0.08 + macro×0.10
+Penalties: chasing(-0.25), stale_narrative(-0.15), negative_peer(-0.10)
 
-## Final Principle
-Good ideas should feel non-obvious at entry, obvious in hindsight.
-
-## Workflow
-- **Daily log**: Update Notes.md before session end with accomplishments
-- **Auto-sync**: SessionStart pulls from GitHub, Stop pushes changes
-- **Multi-machine**: Laptop and desktop stay in sync via GitHub + Dropbox
-
-## Active Build
-- **Watchlist v2** Phase 1 (signal pipeline) done May 15. Phase 2 two-ring mechanics (Tasks 15–18) + Task 20 flag-guarded `get_prompt_pulse_score()` implemented. Next gated steps: Task 19 Core seed (CJ sign-off — do not invent tickers), Task 27 flag flip. `USE_REAL_PROMPT_PULSE` defaults to OFF until Task 27 pre-flight passes.
-- Spec: `docs/superpowers/specs/2026-04-20-watchlist-v2-design.md`
-- Plan: `docs/superpowers/plans/2026-04-20-watchlist-v2-implementation.md` (33 tasks, 5 phases)
-
-## Cross-References
-- General context: `~/.claude/CLAUDE.md` (global rules)
+## Memory SoT
+Dropbox `claude-memory/Vantastonk/` (MEMORY.md, feedback_*, cross-agent-log). Missing GitHub ≠ absent.
